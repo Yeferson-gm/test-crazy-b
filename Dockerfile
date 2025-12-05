@@ -20,9 +20,10 @@ RUN apk add --no-cache \
 # ================================
 FROM base AS deps
 
-# Instalar Node.js 22+ desde edge (requerido por Prisma CLI)
-RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories \
-  && apk add --no-cache nodejs-current npm
+# Instalar Node.js 22+ desde Alpine edge (requerido por Prisma CLI) con ICU
+RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories \
+  && echo "https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories \
+  && apk add --no-cache nodejs-current npm icu-libs icu-data-full
 
 # Copiar archivos de dependencias
 COPY package.json bun.lock ./
@@ -35,9 +36,10 @@ RUN bun install --frozen-lockfile --ignore-scripts
 # ================================
 FROM base AS builder
 
-# Instalar Node.js 22+ desde edge (requerido por Prisma CLI)
-RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories \
-  && apk add --no-cache nodejs-current npm
+# Instalar Node.js 22+ desde Alpine edge (requerido por Prisma CLI) con ICU
+RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories \
+  && echo "https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories \
+  && apk add --no-cache nodejs-current npm icu-libs icu-data-full
 
 # Copiar dependencias instaladas
 COPY --from=deps /app/node_modules ./node_modules
