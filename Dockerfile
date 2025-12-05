@@ -13,7 +13,9 @@ WORKDIR /app
 RUN apk add --no-cache \
     postgresql-client \
     curl \
-    ca-certificates
+    ca-certificates \
+    nodejs \
+    npm
 
 # ================================
 # ETAPA 2: Instalar dependencias
