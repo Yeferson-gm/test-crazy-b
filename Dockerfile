@@ -13,14 +13,16 @@ WORKDIR /app
 RUN apk add --no-cache \
     postgresql-client \
     curl \
-    ca-certificates \
-    nodejs \
-    npm
+    ca-certificates
 
 # ================================
 # ETAPA 2: Instalar dependencias
 # ================================
 FROM base AS deps
+
+# Instalar Node.js 22+ desde edge (requerido por Prisma CLI)
+RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories \
+  && apk add --no-cache nodejs-current npm
 
 # Copiar archivos de dependencias
 COPY package.json bun.lock ./
@@ -32,6 +34,10 @@ RUN bun install --frozen-lockfile --ignore-scripts
 # ETAPA 3: Build
 # ================================
 FROM base AS builder
+
+# Instalar Node.js 22+ desde edge (requerido por Prisma CLI)
+RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories \
+  && apk add --no-cache nodejs-current npm
 
 # Copiar dependencias instaladas
 COPY --from=deps /app/node_modules ./node_modules
