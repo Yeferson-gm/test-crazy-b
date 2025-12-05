@@ -25,8 +25,8 @@ FROM base AS deps
 # Copiar archivos de dependencias
 COPY package.json bun.lock ./
 
-# Instalar todas las dependencias (incluyendo prisma para migraciones)
-RUN bun install --frozen-lockfile
+# Instalar dependencias sin ejecutar scripts (evita verificación de Node.js en Prisma)
+RUN bun install --frozen-lockfile --ignore-scripts
 
 # ================================
 # ETAPA 3: Build
