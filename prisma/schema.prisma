@@ -1,0 +1,364 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Enums
+enum UserRole {
+  admin
+  manager
+  cashier
+  seller
+}
+
+enum PaymentMethod {
+  cash
+  card
+  yape
+  plin
+  transfer
+}
+
+enum InvoiceType {
+  boleta
+  factura
+  nota_credito
+  nota_debito
+}
+
+enum InvoiceStatus {
+  draft
+  sent
+  accepted
+  rejected
+  cancelled
+}
+
+// Models
+model Store {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique
+  address   String
+  city      String?
+  phone     String?
+  email     String?
+  ruc       String?
+  manager   String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users         User[]
+  sales         Sale[]
+  invoices      Invoice[]
+  cashRegisters CashRegister[]
+
+  @@map("stores")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  storeId       String?  @map("store_id")
+  email         String   @unique
+  password      String?
+  firstName     String?  @map("first_name")
+  lastName      String?  @map("last_name")
+  dni           String?
+  phone         String?
+  role          UserRole @default(cashier)
+  isActive      Boolean  @default(true) @map("is_active")
+  emailVerified Boolean  @default(false) @map("email_verified")
+  image         String?
+  profileImageId String? @map("profile_image_id")
+  name          String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  store         Store?         @relation(fields: [storeId], references: [id])
+  profileImage  Media?         @relation(fields: [profileImageId], references: [id])
+  sales         Sale[]
+  cashRegisters CashRegister[]
+  sessions      Session[]
+  accounts      Account[]
+  notifications Notification[]
+
+  @@index([storeId])
+  @@index([email])
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  token     String   @unique
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("sessions")
+}
+
+model Account {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  accountId    String    @map("account_id")
+  providerId   String    @map("provider_id")
+  accessToken  String?   @map("access_token")
+  refreshToken String?   @map("refresh_token")
+  idToken      String?   @map("id_token")
+  expiresAt    DateTime? @map("expires_at")
+  password     String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  parentId    String?  @map("parent_id")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  parent   Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryToCategory")
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  categoryId  String?  @map("category_id")
+  sku         String   @unique
+  barcode     String?
+  name        String
+  description String?
+  image       String?
+  imageId     String?  @map("image_id")
+  costPrice   Decimal  @map("cost_price") @db.Decimal(10, 2)
+  salePrice   Decimal  @map("sale_price") @db.Decimal(10, 2)
+  taxRate     Decimal  @default(18.00) @map("tax_rate") @db.Decimal(5, 2)
+  stock       Int      @default(0)
+  minStock    Int      @default(0) @map("min_stock")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  category     Category?  @relation(fields: [categoryId], references: [id])
+  productImage Media?     @relation(fields: [imageId], references: [id])
+  saleItems    SaleItem[]
+
+  @@index([sku])
+  @@index([barcode])
+  @@map("products")
+}
+
+model Customer {
+  id             String   @id @default(uuid())
+  documentType   String   @default("DNI") @map("document_type")
+  documentNumber String   @unique @map("document_number")
+  name           String
+  email          String?
+  phone          String?
+  address        String?
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  sales    Sale[]
+  invoices Invoice[]
+
+  @@index([documentNumber])
+  @@map("customers")
+}
+
+model Sale {
+  id               String        @id @default(uuid())
+  storeId          String        @map("store_id")
+  userId           String        @map("user_id")
+  customerId       String?       @map("customer_id")
+  saleNumber       String        @unique @map("sale_number")
+  subtotal         Decimal       @db.Decimal(10, 2)
+  taxAmount        Decimal       @map("tax_amount") @db.Decimal(10, 2)
+  discount         Decimal       @default(0.00) @db.Decimal(10, 2)
+  total            Decimal       @db.Decimal(10, 2)
+  paymentMethod    PaymentMethod @map("payment_method")
+  paymentReference String?       @map("payment_reference")
+  status           String        @default("completed")
+  notes            String?
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  store          Store           @relation(fields: [storeId], references: [id])
+  user           User            @relation(fields: [userId], references: [id])
+  customer       Customer?       @relation(fields: [customerId], references: [id])
+  items          SaleItem[]
+  invoice        Invoice?
+  paymentRecords PaymentRecord[]
+
+  @@index([storeId])
+  @@index([saleNumber])
+  @@index([createdAt])
+  @@map("sales")
+}
+
+model SaleItem {
+  id        String  @id @default(uuid())
+  saleId    String  @map("sale_id")
+  productId String  @map("product_id")
+  quantity  Int
+  unitPrice Decimal @map("unit_price") @db.Decimal(10, 2)
+  taxRate   Decimal @map("tax_rate") @db.Decimal(5, 2)
+  discount  Decimal @default(0.00) @db.Decimal(10, 2)
+  subtotal  Decimal @db.Decimal(10, 2)
+  total     Decimal @db.Decimal(10, 2)
+
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([saleId])
+  @@map("sale_items")
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  saleId        String        @unique @map("sale_id")
+  storeId       String        @map("store_id")
+  customerId    String        @map("customer_id")
+  invoiceType   InvoiceType   @map("invoice_type")
+  serie         String
+  number        String
+  fullNumber    String        @unique @map("full_number")
+  issueDate     DateTime      @default(now()) @map("issue_date")
+  dueDate       DateTime?     @map("due_date")
+  subtotal      Decimal       @db.Decimal(10, 2)
+  taxAmount     Decimal       @map("tax_amount") @db.Decimal(10, 2)
+  total         Decimal       @db.Decimal(10, 2)
+  status        InvoiceStatus @default(draft)
+  sunatResponse Json?         @map("sunat_response")
+  sunatCdr      String?       @map("sunat_cdr")
+  xmlUrl        String?       @map("xml_url")
+  pdfUrl        String?       @map("pdf_url")
+  hashCode      String?       @map("hash_code")
+  qrCode        String?       @map("qr_code")
+  notes         String?
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  sale     Sale     @relation(fields: [saleId], references: [id])
+  store    Store    @relation(fields: [storeId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@index([saleId])
+  @@index([storeId])
+  @@index([status])
+  @@map("invoices")
+}
+
+model PaymentRecord {
+  id            String        @id @default(uuid())
+  saleId        String        @map("sale_id")
+  amount        Decimal       @db.Decimal(10, 2)
+  paymentMethod PaymentMethod @map("payment_method")
+  reference     String?
+  notes         String?
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  sale Sale @relation(fields: [saleId], references: [id])
+
+  @@index([saleId])
+  @@map("payment_records")
+}
+
+model CashRegister {
+  id             String    @id @default(uuid())
+  storeId        String    @map("store_id")
+  userId         String    @map("user_id")
+  openingAmount  Decimal   @map("opening_amount") @db.Decimal(10, 2)
+  closingAmount  Decimal?  @map("closing_amount") @db.Decimal(10, 2)
+  expectedAmount Decimal?  @map("expected_amount") @db.Decimal(10, 2)
+  difference     Decimal?  @db.Decimal(10, 2)
+  status         String    @default("open")
+  openedAt       DateTime  @default(now()) @map("opened_at")
+  closedAt       DateTime? @map("closed_at")
+  notes          String?
+
+  store Store @relation(fields: [storeId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@index([storeId])
+  @@index([userId])
+  @@map("cash_registers")
+}
+
+model Supplier {
+  id          String   @id @default(uuid())
+  name        String
+  ruc         String?  @unique
+  email       String?
+  phone       String?
+  address     String?
+  contactName String?  @map("contact_name")
+  website     String?
+  notes       String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("suppliers")
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  type      String
+  title     String
+  message   String
+  priority  String    @default("medium")
+  metadata  Json?
+  isRead    Boolean   @default(false) @map("is_read")
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
+}
+
+model Media {
+  id        String   @id @default(uuid())
+  publicId  String   @unique @map("public_id")
+  format    String
+  secureUrl String   @map("secure_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users    User[]
+  products Product[]
+
+  @@index([publicId])
+  @@map("media")
+}

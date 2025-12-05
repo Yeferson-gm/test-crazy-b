@@ -1,0 +1,61 @@
+# Dependencies
+node_modules/
+
+# output
+out
+dist
+build
+*.tgz
+
+# code coverage
+coverage
+*.lcov
+
+# logs
+logs
+*.log
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# dotenv environment variable files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# caches
+.eslintcache
+.cache
+*.tsbuildinfo
+
+# IntelliJ based IDEs
+.idea
+.vscode
+
+# Finder (MacOS) folder config
+.DS_Store
+
+# uploads directory (user generated content)
+uploads/*
+!uploads/.gitkeep
+
+# database
+*.db
+*.sqlite
+
+# OS
+Thumbs.db
+
+# Docker
+.docker
+
+# Backup files
+*.backup
+*.bak
+
+/src/generated/prisma
+
+# NO ignorar estos archivos importantes:
+!bun.lock
+!prisma/schema.prisma
+!prisma/migrations/
