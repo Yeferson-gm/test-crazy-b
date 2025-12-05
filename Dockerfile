@@ -39,8 +39,8 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copiar código fuente
 COPY . .
 
-# Generar Prisma Client
-RUN bunx prisma generate
+# Generar Prisma Client usando Bun (no bunx que usa Node.js)
+RUN bun run node_modules/.bin/prisma generate
 
 # Verificar que existen las migraciones
 RUN ls -la prisma/migrations/ || echo "⚠️  Carpeta prisma/migrations no encontrada"
@@ -90,8 +90,8 @@ done
 echo "✅ PostgreSQL está listo"
 
 # Ejecutar migraciones
-echo "� Ejecutando migraciones de Prisma..."
-bunx prisma migrate deploy || {
+echo "📦 Ejecutando migraciones de Prisma..."
+bun run node_modules/.bin/prisma migrate deploy || {
   echo "❌ Error ejecutando migraciones"
   exit 1
 }
@@ -99,7 +99,7 @@ echo "✅ Migraciones completadas"
 
 # Ejecutar seeds
 echo "🌱 Ejecutando seeds..."
-bunx prisma db seed || {
+bun run node_modules/.bin/prisma db seed || {
   echo "⚠️  Warning: Error ejecutando seeds (puede ser normal si ya existen datos)"
 }
 echo "✅ Seeds completados"
